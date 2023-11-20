@@ -89,7 +89,7 @@ void doit(int fd)
     }
     serve_static(fd, filename, sbuf.st_size);
   }
-  else{
+  else{ //동적이면 0
     if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
       clienterror(fd, filename, "403", "Forbidden", "Tiny couldn't run the CGI program");
       return;
@@ -134,10 +134,11 @@ void read_requesthdrs(rio_t *rp)
 int parse_uri(char *uri, char*filename, char *cgiargs)
 {
   char *ptr;
-
-  if(!strstr(uri, "cgi-bin")){ //uri에 cgibin있는지
+  //strstr(a,b) a에 b가 있으면 참
+  if(!strstr(uri, "cgi-bin")){ //uri에 cgibin있는지 
     strcpy(cgiargs, "");
     strcpy(filename, ".");
+    //strcat 연결
     strcat(filename, uri);
     if(uri[strlen(uri)-1] == '/'){
       strcat(filename, "home.html");
@@ -147,7 +148,7 @@ int parse_uri(char *uri, char*filename, char *cgiargs)
   else{ //cgibin이 있으면 
     ptr = index(uri, '?');
     if(ptr){
-      strcpy(cgiargs, ptr+1);
+      strcpy(cgiargs, ptr+1); //null전까지 cgiargs에 들어감
       *ptr = '\0';
     }
     else{
@@ -193,7 +194,9 @@ void get_filetype(char *filename,  char *filetype)
     strcpy(filetype, "image/png");
   else if (strstr(filename, ".jpg"))
     strcpy(filetype, "image/jpeg");
-  else
+  else if (strstr(filename, ".mp4"))
+    strcpy(filetype, "video/mp4");
+  else 
     strcpy(filetype, "text/plain");
 
 }
