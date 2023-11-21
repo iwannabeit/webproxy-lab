@@ -11,9 +11,9 @@
 void doit(int fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
-void serve_static(int fd, char *filename, int filesize);
+void serve_static(int fd, char *filename, int filesize, char *method);
 void get_filetype(char *filename, char *filetype);
-void serve_dynamic(int fd, char *filename, char *cgiargs);
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
                  char *longmsg);
 
@@ -64,7 +64,7 @@ void doit(int fd)
   sscanf(buf, "%s %s %s", method, uri, version);//파싱하여 http메서드, uri, version 정보 추출
   printf("newnewnewnewnewnewnewnewnewnew%s\n", buf);
 
-  if(strcasecmp(method, "GET")){//
+  if(strcasecmp(method, "GET") && strcasecmp(method, "HEAD")){//
     clienterror(fd, method, "501", "Not implemented", "Tiny does not implement this method");
     return;
   }
@@ -87,14 +87,14 @@ void doit(int fd)
       clienterror(fd, filename, "403", "Forbidden", "tiny couldn't read the file");
       return;
     }
-    serve_static(fd, filename, sbuf.st_size);
+    serve_static(fd, filename, sbuf.st_size, method);
   }
   else{ //동적이면 0
     if(!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)){
       clienterror(fd, filename, "403", "Forbidden", "Tiny couldn't run the CGI program");
       return;
     }
-    serve_dynamic(fd, filename, cgiargs);
+    serve_dynamic(fd, filename, cgiargs, method);
   }
 }
 
@@ -160,12 +160,12 @@ int parse_uri(char *uri, char*filename, char *cgiargs)
   }
 }
 
-void serve_static(int fd, char *filename, int filesize)
+void serve_static(int fd, char *filename, int filesize, char *method)
 {
   int srcfd;
   char *srcp, filetype[MAXLINE], buf[MAXBUF];
 
-  /*send response headers to oclient*/
+  /*send response headers to client*/
   get_filetype(filename, filetype);
   sprintf(buf, "HTTP/1.0 200 OK\r\n");
   sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
@@ -177,14 +177,16 @@ void serve_static(int fd, char *filename, int filesize)
   printf("%s", buf);
 
   /* Send response body to client */
-  srcfd = Open(filename, O_RDONLY, 0);
+    if(strcmp(method, "GET") == 0 ){ //method가 get일 때만 body를 처리한다.
+    srcfd = Open(filename, O_RDONLY, 0);
   
-  //srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
-  srcp = (char*)malloc(filesize);
-  rio_readn(srcfd, srcp, filesize);
-  Close(srcfd);
-  Rio_writen(fd, srcp, filesize);
-  free(srcp);
+    //srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
+    srcp = (char*)malloc(filesize);
+    rio_readn(srcfd, srcp, filesize);
+    Close(srcfd);
+    Rio_writen(fd, srcp, filesize);
+    free(srcp);
+  }
 }
 
 void get_filetype(char *filename,  char *filetype)
@@ -204,7 +206,7 @@ void get_filetype(char *filename,  char *filetype)
 
 }
 
-void serve_dynamic(int fd, char *filename, char *cgiargs)
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method)
 {
   char buf[MAXLINE], *emptylist[] = {NULL};
 
@@ -216,9 +218,12 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
 
   //Child
   if(Fork() == 0){
+    //query_string 을 adder.c에 보내줌
     setenv("QUERY_STRING", cgiargs, 1);
-    Dup2(fd, STDOUT_FILENO);
-    Execve(filename, emptylist, environ);
+    //method를 cgi-bin/adder.c 로 보내주기 위해
+    setenv("REQUEST_METHOD", method, 1);
+    Dup2(fd, STDOUT_FILENO); //표준출력을 fd로 복제 -> 자식프로세스 표준출력이 원래 fd로 리다이렉트된다.
+    Execve(filename, emptylist, environ); //filename을 실행 emptylist-> 명령라인인자가 없음, environ->현재 환경변수 전달
   }
-  Wait(NULL); 
+  Wait(NULL);
 }

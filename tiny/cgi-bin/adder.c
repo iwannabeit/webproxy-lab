@@ -6,7 +6,7 @@
 
 int main(void) {
   //문자열을 저장할 버퍼 및 변수 선언
-  char *buf, *p, *a, *b, *num1, *num2;
+  char *buf, *p, *a, *b, *num1, *num2, *method;
   char arg1 [MAXLINE], arg2[MAXLINE], content[MAXLINE];
   int n1=0, n2=0;
   
@@ -36,11 +36,18 @@ int main(void) {
   sprintf(content + strlen(content), "</form>\n");
   sprintf(content + strlen(content), "<p>The answer is: %d + %d = %d</p>\n", n1, n2, n1 + n2);
   sprintf(content + strlen(content), "</body></html>\n");
+  
+  //method가 get인지 head인지 받기
+  method = getenv("REQUEST_METHOD");
+
   /*generate the http response*/
   printf("Connection: close\r\n");
   printf("Content-length: %d\r\n", (int)strlen(content));
   printf("content-type: text/html\r\n\r\n");
-  printf("%s", content);
+  //method가 get이면 컨텐츠가 나오도록
+  if(strcmp(method, "GET")== 0){
+    printf("%s", content);
+  }
   fflush(stdout);
 
   exit(0);
