@@ -69,7 +69,7 @@ void doit(int fd)
   }
   //요청헤더를 읽어들이는 함수 호출
   read_requesthdrs(&rio);
-  printf("requsthdhdhdhdhdhdhdhdhdhdhdhdhd%s\n", buf);
+  printf("%s\n", buf);
 
   /*Parse URI from GET request*/
   is_static = parse_uri(uri, filename, cgiargs);
@@ -166,8 +166,8 @@ void serve_static(int fd, char *filename, int filesize, char *method)
   sprintf(buf, "HTTP/1.0 200 OK\r\n");
   sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
   sprintf(buf, "%sConnection: close\r\n", buf);
-  sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
-  sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
+  sprintf(buf, "%sContent-Length: %d\r\n", buf, filesize);
+  sprintf(buf, "%sContent-Type: %s\r\n\r\n", buf, filetype);
   Rio_writen(fd, buf, strlen(buf));
   printf("Response headers:\n");
   printf("%s", buf); //헤더 출력
@@ -175,12 +175,10 @@ void serve_static(int fd, char *filename, int filesize, char *method)
   /* Send response body to client */
     if(strcmp(method, "GET") == 0 ){ //method가 get일 때만 body를 처리한다.
     srcfd = Open(filename, O_RDONLY, 0);
-  
-    //srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
-    Rio_readn(srcfd, srcp, filesize);
+    srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
     Close(srcfd);
-    Rio_writen(fd, srcp, strlen(srcp));
-    Free(srcp);
+    Rio_writen(fd, srcp, filesize);
+    Munmap(srcp, filesize);
   }
 }
 

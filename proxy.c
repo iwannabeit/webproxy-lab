@@ -88,7 +88,7 @@ void request(int targetfd, char *host, char *path){
 //응답하는 함수
 void respond(int targetfd, int clientfd){
   rio_t rio;
-  char buf[MAXBUF];
+  char buf[MAXBUF], reqbuf[MAXBUF];
   int content_length;
   char *cache;
 
@@ -101,8 +101,9 @@ void respond(int targetfd, int clientfd){
   while(strcmp(buf, "\r\n")){ //공백두개인경우까지 반복문 수행
     Rio_readlineb(&rio, buf, MAXLINE);
     printf("%s",buf);
-    if(strstr(buf, "Content-Length:")){ //content-length가 있는지 확인해서 있으면
-      sscanf(buf, "Content-Length: %d", &content_length); //content lengt: 다음에 오는 정수를 추출해서 content-lengt 변수에 저장
+    if(strstr(buf, "Content-Length")){ //content-length가 있는지 확인해서 있으면
+      content_length = atoi(strchr(buf, ':') + 1); //content lengt: 다음에 오는 정수를 추출해서 content-lengt 변수에 저장
+      printf("%d\n",content_length);
     }
     Rio_writen(clientfd, buf, strlen(buf)); //헤더를 buf사이즈만큼 클라이언트에게 전송    
   }
@@ -114,10 +115,11 @@ void respond(int targetfd, int clientfd){
   //   //클라이언트한테 body전송
   //   Rio_writen(clientfd, cache, content_length);
   // }
-
+  printf("새로 만든 버프:\n %s\n",reqbuf);
   Rio_readnb(&rio, buf, MAXBUF);
-  printf("\n%s\n",buf);
-  Rio_writen(clientfd, buf, strlen(buf));
+  printf("\n그냥버프\n%s\n",buf);
+  printf("\n새버프\n%s\n",reqbuf);
+  Rio_writen(clientfd, buf, content_length);
   
 }
 //read_requesthdrs
