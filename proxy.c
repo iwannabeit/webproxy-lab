@@ -62,9 +62,7 @@ void doit(int clientfd)
   printf("----------------------------\n");
   //서버에 연결된 클라이언트 소켓의 파일 디스크립터를 serverfd로 저장
   serverfd = Open_clientfd(host, port);
-  printf("서버받음");
   request(serverfd, host, path); //telnet
-  printf("요청 완료");
   respond(serverfd, clientfd); //server에서 쓰는 serverfd랑 client로 보낼 clientfd 
   Close(serverfd);
 }
