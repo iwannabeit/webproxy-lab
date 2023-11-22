@@ -62,8 +62,7 @@ void doit(int fd)
   printf("%s", buf); //GET/HTTP/1.1
   //sscanf : string scanf 로, 문자를 추출해서 데이터를 변수에 저장
   sscanf(buf, "%s %s %s", method, uri, version);//파싱하여 http메서드, uri, version 정보 추출
-  printf("newnewnewnewnewnewnewnewnewnew%s\n", buf);
-
+  
   if(strcasecmp(method, "GET") && strcasecmp(method, "HEAD")){//
     clienterror(fd, method, "501", "Not implemented", "Tiny does not implement this method");
     return;
@@ -71,8 +70,6 @@ void doit(int fd)
   //요청헤더를 읽어들이는 함수 호출
   read_requesthdrs(&rio);
   printf("requsthdhdhdhdhdhdhdhdhdhdhdhdhd%s\n", buf);
-  printf("asdfasdfasdfasf%s",uri); //uri = /
-  printf("------------------------");
 
   /*Parse URI from GET request*/
   is_static = parse_uri(uri, filename, cgiargs);
@@ -111,9 +108,9 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
   /* Print the HTTP response */
   sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
   Rio_writen(fd, buf, strlen(buf));
-  sprintf(buf, "Content-type: text/html\r\n");
+  sprintf(buf, "Content-Type: text/html\r\n");
   Rio_writen(fd, buf, strlen(buf));
-  sprintf(buf, "Content-length: %d\r\n\r\n", (int)strlen(body));
+  sprintf(buf, "Content-Length: %d\r\n\r\n", (int)strlen(body));
   Rio_writen(fd, buf, strlen(buf));
   Rio_writen(fd, body, strlen(body));
 }
@@ -123,7 +120,6 @@ void read_requesthdrs(rio_t *rp)
   char buf[MAXLINE];
 
   Rio_readlineb(rp, buf, MAXLINE);
-  printf("gugugugugu%s", buf);
   while(strcmp(buf, "\r\n")){ //공백두개인경우까지 반복문 수행
     Rio_readlineb(rp, buf, MAXLINE);
     printf("%s", buf);
@@ -174,18 +170,17 @@ void serve_static(int fd, char *filename, int filesize, char *method)
   sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
   Rio_writen(fd, buf, strlen(buf));
   printf("Response headers:\n");
-  printf("%s", buf);
+  printf("%s", buf); //헤더 출력
 
   /* Send response body to client */
     if(strcmp(method, "GET") == 0 ){ //method가 get일 때만 body를 처리한다.
     srcfd = Open(filename, O_RDONLY, 0);
   
     //srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
-    srcp = (char*)malloc(filesize);
-    rio_readn(srcfd, srcp, filesize);
+    Rio_readn(srcfd, srcp, filesize);
     Close(srcfd);
-    Rio_writen(fd, srcp, filesize);
-    free(srcp);
+    Rio_writen(fd, srcp, strlen(srcp));
+    Free(srcp);
   }
 }
 
